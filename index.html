@@ -226,7 +226,7 @@
   <div class="navlinks">
     <a href="#great-work">Guru</a>
     <a href="#adversary">Play</a>
-    <a href="#workings">Workings</a>
+    <a href="#workings">Repos</a>
     <a class="gh" href="https://github.com/4-R-C-4-N-4" target="_blank" rel="noopener">GitHub ↗</a>
   </div>
 </nav>
@@ -249,10 +249,9 @@
 
 <!-- ══════════ I · THE GREAT WORK / GURU ══════════ -->
 <section class="section" id="great-work">
-  <div class="eyebrow reveal"><span class="num">·&nbsp;I&nbsp;·</span> The Great Work <span class="rule"></span></div>
+  <div class="eyebrow reveal"><span class="num">·&nbsp;I&nbsp;·</span> Flagship <span class="rule"></span></div>
   <div class="guru-grid">
     <div>
-      <div class="kicker reveal">the flagship working</div>
       <h2 class="h-lg reveal d1">guru</h2>
       <div class="sub-lg reveal d1">cross-tradition esoteric text engine</div>
       <p class="lead reveal d2">Guru ingests primary texts from twenty-one traditions, builds a concept graph of
@@ -294,7 +293,7 @@
 
 <!-- ══════════ II · THE ADVERSARY / GAMES ══════════ -->
 <section class="section" id="adversary">
-  <div class="eyebrow reveal"><span class="num">·&nbsp;II&nbsp;·</span> The Adversary <span class="rule"></span></div>
+  <div class="eyebrow reveal"><span class="num">·&nbsp;II&nbsp;·</span> Games <span class="rule"></span></div>
   <div class="play-head">
     <h2 class="h-lg reveal d1">A real opponent</h2>
     <p class="lead reveal d2">tiny-games chases a third path between scripted state machines and cloud calls: the
@@ -321,10 +320,10 @@
 
 <!-- ══════════ III · THE MINOR ARCANA / WORKINGS ══════════ -->
 <section class="section" id="workings">
-  <div class="eyebrow reveal"><span class="num">·&nbsp;III&nbsp;·</span> The Minor Arcana <span class="rule"></span></div>
-  <h2 class="h-lg reveal d1">The workings</h2>
-  <p class="lead reveal d2">Every repository carries its own epigraph. Agents that grow, protocols without
-    infrastructure, renderers that reduce the image to its glyphs — each a small experiment in one idea.</p>
+  <div class="eyebrow reveal"><span class="num">·&nbsp;III&nbsp;·</span> Repositories <span class="rule"></span></div>
+  <h2 class="h-lg reveal d1">Everything else</h2>
+  <p class="lead reveal d2">The rest of the workshop — agents, protocols, renderers, and smaller experiments.
+    Each repo keeps its own one-line description.</p>
   <div class="work-grid reveal d2" id="work-grid"></div>
 </section>
 
@@ -332,12 +331,12 @@
   <div class="colo">
     <div>
       <div class="mk">ARCANA</div>
-      <p class="say">Handmade in the open. No trackers, no cookies — the whole page is a static file, and every
+      <p class="say">Built in the open. No trackers, no cookies — the whole page is a static file, and every
         game runs on your machine alone.</p>
     </div>
     <div class="rt">
       <a href="https://github.com/4-R-C-4-N-4" target="_blank" rel="noopener">github.com/4-R-C-4-N-4</a><br/>
-      <span>MMXXVI · the utterance of a name</span>
+      <span>MMXXVI</span>
     </div>
   </div>
 </footer>
@@ -365,16 +364,16 @@
 
   /* ---------- rotating epigraph ---------- */
   const EPI = [
-    ["I was sent out from the power, and have come to you who study me — and am found by you who seek me.","guru"],
-    ["I am the utterance of my name.","guru-web"],
-    ["Using WASM and LLMs to make an opponent that reads you.","tiny-games"],
-    ["Making places out of things, paths out of connections — lifting the veil.","howm"],
-    ["The agent that grows with you.","hermes-agent"],
-    ["Direct. Verified. Infrastructureless.","summit"],
+    ["cross-tradition esoteric text search","guru"],
+    ["a reading room over the corpus","guru-web"],
+    ["a tower defense that plays against you","wiz-tower"],
+    ["an agent that grows with you","hermes-agent"],
+    ["direct, verified, infrastructureless","summit"],
+    ["places out of things, paths out of connections","howm"],
   ];
   const epEl = document.getElementById("epigraph");
   let ei = 0;
-  const setEp = () => { epEl.innerHTML = '“'+EPI[ei][0]+'”<span class="src">'+EPI[ei][1]+'</span>'; };
+  const setEp = () => { epEl.innerHTML = EPI[ei][0]+'<span class="src">'+EPI[ei][1]+'</span>'; };
   setEp();
   if(!RM){
     setInterval(() => {
@@ -424,6 +423,17 @@
     f.title = "wiz-tower — adversarial tower defense";
     f.loading = "lazy";
     f.allow = "fullscreen";
+    // same-origin: hide the game's scrollbar while keeping wheel/touch scroll, like on a phone
+    f.addEventListener("load", () => {
+      try {
+        const d = f.contentDocument;
+        if(d){
+          const s = d.createElement("style");
+          s.textContent = "html,body{scrollbar-width:none;-ms-overflow-style:none}html::-webkit-scrollbar,body::-webkit-scrollbar{width:0;height:0;display:none}";
+          (d.head || d.documentElement).appendChild(s);
+        }
+      } catch(_){/* cross-origin fallback: .screen overflow:hidden still clips */}
+    });
     poster.replaceWith(f);
   };
   poster.addEventListener("click", summon);
