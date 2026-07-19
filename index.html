@@ -162,6 +162,9 @@
   .screen{position:relative;border:1px solid var(--line);background:#05050b;border-radius:4px;overflow:hidden;
     aspect-ratio:360/720;box-shadow:0 50px 100px -50px rgba(120,60,180,.4),0 0 60px -30px rgba(196,163,90,.3)}
   .screen iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  /* once the game is summoned, the frame drops its fixed ratio and grows to the game's own height (no scroll) */
+  .screen.live{aspect-ratio:auto;height:auto;min-height:200px}
+  .screen.live iframe{position:static;inset:auto;width:100%;height:640px;border:0;display:block}
   .poster{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;
     text-align:center;cursor:pointer;background:radial-gradient(70% 60% at 50% 38%,#191033,#07060f);transition:.4s}
   .poster:hover{background:radial-gradient(70% 60% at 50% 38%,#221542,#08070f)}
@@ -417,23 +420,36 @@
 
   /* ---------- game summon ---------- */
   const poster = document.getElementById("poster");
+  const screenEl = document.querySelector(".screen");
+  const GAME_SRC = "games/wiz-tower.html";
   const summon = () => {
     const f = document.createElement("iframe");
-    f.src = "games/wiz-tower.html";
+    f.src = GAME_SRC;
     f.title = "wiz-tower — adversarial tower defense";
-    f.loading = "lazy";
     f.allow = "fullscreen";
-    // same-origin: hide the game's scrollbar while keeping wheel/touch scroll, like on a phone
-    f.addEventListener("load", () => {
+    f.style.height = "640px";
+    // Game is same-origin, so size the frame to the game's own content height:
+    // the whole app lives in .wt — the frame grows to it, so nothing scrolls.
+    const fit = () => {
       try {
         const d = f.contentDocument;
-        if(d){
-          const s = d.createElement("style");
-          s.textContent = "html,body{scrollbar-width:none;-ms-overflow-style:none}html::-webkit-scrollbar,body::-webkit-scrollbar{width:0;height:0;display:none}";
-          (d.head || d.documentElement).appendChild(s);
+        const wt = d && (d.querySelector(".wt") || d.body);
+        if(wt){
+          const h = Math.ceil(Math.max(wt.scrollHeight, wt.getBoundingClientRect().height));
+          if(h > 80) f.style.height = h + "px";
         }
-      } catch(_){/* cross-origin fallback: .screen overflow:hidden still clips */}
+      } catch(_){/* cross-origin: falls back to the 640px default */}
+    };
+    f.addEventListener("load", () => {
+      fit();
+      try {
+        const wt = f.contentDocument.querySelector(".wt") || f.contentDocument.body;
+        new ResizeObserver(fit).observe(wt);   // refit on menu → gameplay changes
+      } catch(_){}
+      let n = 0; const iv = setInterval(() => { fit(); if(++n > 24) clearInterval(iv); }, 200);
     });
+    addEventListener("resize", fit);
+    screenEl.classList.add("live");
     poster.replaceWith(f);
   };
   poster.addEventListener("click", summon);
