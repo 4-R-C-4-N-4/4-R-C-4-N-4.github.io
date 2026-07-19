@@ -155,7 +155,10 @@
     radial-gradient(80% 60% at 50% 0%,rgba(20,10,30,.5),transparent 70%)}
   .play-head{text-align:center;max-width:680px;margin:0 auto}
   .play-head .lead{margin-left:auto;margin-right:auto;max-width:60ch}
-  .cabinet{margin:56px auto 0;max-width:440px;position:relative;padding:16px}
+  .cabinets{display:flex;flex-wrap:wrap;gap:clamp(24px,4vw,48px);justify-content:center;align-items:flex-start;margin-top:56px}
+  .cabinet{flex:0 1 440px;max-width:440px;position:relative;padding:16px}
+  .cab-note{align-self:center;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .src-line{text-align:center;margin-top:44px}
   .cabinet::before,.cabinet::after{content:"";position:absolute;width:26px;height:26px;border:1px solid var(--gold);opacity:.5}
   .cabinet::before{top:0;left:0;border-right:0;border-bottom:0}
   .cabinet::after{bottom:0;right:0;border-left:0;border-top:0}
@@ -305,19 +308,9 @@
       strikes your gaps. <em>Entirely client-side. Nothing phoned home at play time.</em></p>
   </div>
 
-  <div class="cabinet reveal d2">
-    <div class="screen">
-      <div class="poster" id="poster" role="button" tabindex="0" aria-label="Summon wiz-tower">
-        <div class="rune">🧙</div>
-        <div class="nm">wiz-tower</div>
-        <div class="tl">adversarial tower defense · a foe that reads your board</div>
-        <div class="summon">Summon ▸</div>
-      </div>
-    </div>
-  </div>
-  <div class="cab-cta reveal d2">
-    <a class="btn" href="/tiny-games/" target="_blank" rel="noopener">Play fullscreen <span class="arw">↗</span></a>
-    <a class="btn" href="https://github.com/4-R-C-4-N-4/tiny-games" target="_blank" rel="noopener">The source · 95 tests green <span class="arw">↗</span></a>
+  <div class="cabinets reveal d2" id="cabinets"></div>
+  <div class="src-line reveal d2">
+    <a class="btn" href="https://github.com/4-R-C-4-N-4/tiny-games" target="_blank" rel="noopener">Browse the source <span class="arw">↗</span></a>
   </div>
 </section>
 
@@ -418,44 +411,60 @@
   const tio = new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){runTerminal();tio.disconnect();}});},{threshold:.4});
   tio.observe(document.getElementById("codex"));
 
-  /* ---------- game summon ---------- */
-  const poster = document.getElementById("poster");
-  const screenEl = document.querySelector(".screen");
-  // Single source of truth: the game is built + deployed by the tiny-games repo's
-  // own Pages workflow. Same origin as this site, so the content-fit below works.
-  const GAME_SRC = "/tiny-games/wiz-tower.html";
-  const summon = () => {
-    const f = document.createElement("iframe");
-    f.src = GAME_SRC;
-    f.title = "wiz-tower — adversarial tower defense";
-    f.allow = "fullscreen";
-    f.style.height = "640px";
-    // Game is same-origin, so size the frame to the game's own content height:
-    // the whole app lives in .wt — the frame grows to it, so nothing scrolls.
-    const fit = () => {
-      try {
-        const d = f.contentDocument;
-        const wt = d && (d.querySelector(".wt") || d.body);
-        if(wt){
-          const h = Math.ceil(Math.max(wt.scrollHeight, wt.getBoundingClientRect().height));
-          if(h > 80) f.style.height = h + "px";
-        }
-      } catch(_){/* cross-origin: falls back to the 640px default */}
+  /* ---------- games (data-driven; wiz-tower is just the first) ---------- */
+  // Each game is built + deployed by the tiny-games repo to /tiny-games/<slug>/
+  // (single source of truth). To feature another game, add an entry here.
+  const GAMES = [
+    { slug:"wiz-tower", rune:"🧙", name:"wiz-tower",
+      tagline:"adversarial tower defense · a foe that reads your board",
+      note:"95 tests green" },
+  ];
+  const cabinets = document.getElementById("cabinets");
+  const buildCabinet = (g) => {
+    const file  = g.file || (g.slug + ".html");
+    const embed = "/tiny-games/" + g.slug + "/" + file;      // self-contained, same origin
+    const full  = "/tiny-games/" + g.slug + "/";             // the game's own page
+    const cab = document.createElement("div");
+    cab.className = "cabinet";
+    cab.innerHTML =
+      '<div class="screen"><div class="poster" role="button" tabindex="0" aria-label="Summon ' + g.name + '">' +
+        '<div class="rune">' + g.rune + '</div><div class="nm">' + g.name + '</div>' +
+        '<div class="tl">' + g.tagline + '</div><div class="summon">Summon ▸</div></div></div>' +
+      '<div class="cab-cta"><a class="btn" href="' + full + '" target="_blank" rel="noopener">Play fullscreen <span class="arw">↗</span></a>' +
+        (g.note ? '<span class="cab-note">' + g.note + '</span>' : '') + '</div>';
+    cabinets.appendChild(cab);
+    const screenEl = cab.querySelector(".screen");
+    const poster = cab.querySelector(".poster");
+    const summon = () => {
+      const f = document.createElement("iframe");
+      f.src = embed;
+      f.title = g.name;
+      f.allow = "fullscreen";
+      f.style.height = "640px";
+      // Same-origin: size the frame to the game's own content (.wt) so nothing scrolls.
+      const fit = () => {
+        try {
+          const d = f.contentDocument;
+          const wt = d && (d.querySelector(".wt") || d.body);
+          if(wt){
+            const h = Math.ceil(Math.max(wt.scrollHeight, wt.getBoundingClientRect().height));
+            if(h > 80) f.style.height = h + "px";
+          }
+        } catch(_){/* cross-origin: falls back to the 640px default */}
+      };
+      f.addEventListener("load", () => {
+        fit();
+        try { new ResizeObserver(fit).observe(f.contentDocument.querySelector(".wt") || f.contentDocument.body); } catch(_){}
+        let n = 0; const iv = setInterval(() => { fit(); if(++n > 24) clearInterval(iv); }, 200);
+      });
+      addEventListener("resize", fit);
+      screenEl.classList.add("live");
+      poster.replaceWith(f);
     };
-    f.addEventListener("load", () => {
-      fit();
-      try {
-        const wt = f.contentDocument.querySelector(".wt") || f.contentDocument.body;
-        new ResizeObserver(fit).observe(wt);   // refit on menu → gameplay changes
-      } catch(_){}
-      let n = 0; const iv = setInterval(() => { fit(); if(++n > 24) clearInterval(iv); }, 200);
-    });
-    addEventListener("resize", fit);
-    screenEl.classList.add("live");
-    poster.replaceWith(f);
+    poster.addEventListener("click", summon);
+    poster.addEventListener("keydown", e => { if(e.key==="Enter"||e.key===" "){ e.preventDefault(); summon(); } });
   };
-  poster.addEventListener("click", summon);
-  poster.addEventListener("keydown", e => { if(e.key==="Enter"||e.key===" "){ e.preventDefault(); summon(); } });
+  GAMES.forEach(buildCabinet);
 
   /* ---------- workings grid ---------- */
   const WORK = [
