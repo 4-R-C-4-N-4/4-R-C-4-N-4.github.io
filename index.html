@@ -414,7 +414,8 @@
   /* ---------- games (data-driven; wiz-tower is just the first) ---------- */
   // Each game is built + deployed by the tiny-games repo to /tiny-games/<slug>/
   // (single source of truth). To feature another game, add an entry here.
-  const GAMES = [
+  // Fallback list if the manifest can't be fetched (offline / local dev).
+  const FALLBACK_GAMES = [
     { slug:"wiz-tower", rune:"🧙", name:"wiz-tower",
       tagline:"adversarial tower defense · a foe that reads your board",
       note:"95 tests green" },
@@ -464,7 +465,14 @@
     poster.addEventListener("click", summon);
     poster.addEventListener("keydown", e => { if(e.key==="Enter"||e.key===" "){ e.preventDefault(); summon(); } });
   };
-  GAMES.forEach(buildCabinet);
+  // Single source: tiny-games publishes /tiny-games/games.json, so new games
+  // appear here with no edits to this site. Fall back to the list above if the
+  // manifest is unreachable (e.g. local dev).
+  fetch("/tiny-games/games.json", {cache:"no-cache"})
+    .then(r => r.ok ? r.json() : Promise.reject(new Error("no manifest")))
+    .then(list => (Array.isArray(list) && list.length) ? list : FALLBACK_GAMES)
+    .catch(() => FALLBACK_GAMES)
+    .then(list => list.forEach(buildCabinet));
 
   /* ---------- workings grid ---------- */
   const WORK = [
