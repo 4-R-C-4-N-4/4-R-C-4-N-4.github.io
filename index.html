@@ -316,7 +316,7 @@
     </div>
   </div>
   <div class="cab-cta reveal d2">
-    <a class="btn" href="games/wiz-tower.html" target="_blank" rel="noopener">Play fullscreen <span class="arw">↗</span></a>
+    <a class="btn" href="/tiny-games/" target="_blank" rel="noopener">Play fullscreen <span class="arw">↗</span></a>
     <a class="btn" href="https://github.com/4-R-C-4-N-4/tiny-games" target="_blank" rel="noopener">The source · 95 tests green <span class="arw">↗</span></a>
   </div>
 </section>
@@ -421,7 +421,9 @@
   /* ---------- game summon ---------- */
   const poster = document.getElementById("poster");
   const screenEl = document.querySelector(".screen");
-  const GAME_SRC = "games/wiz-tower.html";
+  // Single source of truth: the game is built + deployed by the tiny-games repo's
+  // own Pages workflow. Same origin as this site, so the content-fit below works.
+  const GAME_SRC = "/tiny-games/wiz-tower.html";
   const summon = () => {
     const f = document.createElement("iframe");
     f.src = GAME_SRC;
