@@ -4,10 +4,10 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>ARCANA — the workshop of 4·R·C·4·N·4</title>
-<meta name="description" content="A workshop of small engines for large questions — a cross-tradition esoteric text engine, adversarial client-side games, agents, and protocols. Built by 4-R-C-4-N-4." />
+<meta name="description" content="A workshop of small engines for large questions — a cross-tradition esoteric text engine, tiny client-side AI games, agents, and protocols. Built by 4-R-C-4-N-4." />
 <meta name="color-scheme" content="dark" />
 <meta property="og:title" content="ARCANA" />
-<meta property="og:description" content="Small engines for large questions — esoteric text, adversarial games, agents, protocols." />
+<meta property="og:description" content="Small engines for large questions — esoteric text, tiny AI games, agents, protocols." />
 <meta property="og:type" content="website" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%23c4a35a' stroke-width='1.2'/%3E%3Ccircle cx='16' cy='16' r='4' fill='none' stroke='%23c4a35a' stroke-width='1.2'/%3E%3Cpath d='M16 3 V29 M3 16 H29 M6.6 6.6 L25.4 25.4 M25.4 6.6 L6.6 25.4' stroke='%23c4a35a' stroke-width='.6' opacity='.6'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -245,7 +245,7 @@
     <div class="handle">4 · R · C · 4 · N · 4</div>
     <h1 class="wordmark" id="wordmark" aria-label="ARCANA">ARCANA</h1>
     <p class="epigraph" id="epigraph" aria-live="polite"></p>
-    <p class="creed">A workshop of small engines for large questions — esoteric text, adversarial games,
+    <p class="creed">A workshop of small engines for large questions — esoteric text, tiny AI games,
       agents, and protocols. Built client-first. Nothing phoned home.</p>
   </div>
   <a class="scrollcue" href="#great-work" aria-label="Descend">
@@ -301,11 +301,11 @@
 <section class="section" id="adversary">
   <div class="eyebrow reveal"><span class="num">·&nbsp;II&nbsp;·</span> Games <span class="rule"></span></div>
   <div class="play-head">
-    <h2 class="h-lg reveal d1">A real opponent</h2>
-    <p class="lead reveal d2">tiny-games chases a third path between scripted state machines and cloud calls: the
-      foe is a small, learned adversary distilled from search over the game's own deterministic simulator —
-      shipped as one self-contained file. It reads your defense, conceals its plan, remembers your habits, and
-      strikes your gaps. <em>Entirely client-side. Nothing phoned home at play time.</em></p>
+    <h2 class="h-lg reveal d1">Tiny minds, single files</h2>
+    <p class="lead reveal d2">tiny-games is a run of experiments in plugging a small AI into one self-contained
+      page of HTML: an adversary distilled from search that reads your defense and strikes its gaps, a scorer
+      that grades your vocabulary as spellcraft, a pocket oracle that reads your tarot spread.
+      <em>Entirely client-side. Nothing phoned home at play time.</em></p>
   </div>
 
   <div class="cabinets reveal d2" id="cabinets"></div>
@@ -363,6 +363,7 @@
     ["cross-tradition esoteric text search","guru"],
     ["a reading room over the corpus","guru-web"],
     ["a tower defense that plays against you","wiz-tower"],
+    ["a pocket oracle that reads your spread","tarot"],
     ["an agent that grows with you","hermes-agent"],
     ["direct, verified, infrastructureless","summit"],
     ["places out of things, paths out of connections","howm"],
@@ -419,18 +420,27 @@
     { slug:"wiz-tower", rune:"🧙", name:"wiz-tower",
       tagline:"adversarial tower defense · a foe that reads your board",
       note:"95 tests green" },
+    { slug:"lexomancy", rune:"📖", name:"lexomancy",
+      tagline:"a war of words · cast your vocabulary",
+      note:"full spire playable — distilled 80k-word scorer, 50 tests green" },
+    { slug:"tarot", rune:"🔮", name:"tarot", embed:false,
+      tagline:"daily draws · a tiny oracle reads your spread",
+      note:"deterministic daily spreads, 1909 Waite–Smith card art (public domain); ~360M-param LLM interpreter runs in-browser" },
   ];
   const cabinets = document.getElementById("cabinets");
   const buildCabinet = (g) => {
     const file  = g.file || (g.slug + ".html");
     const embed = "/tiny-games/" + g.slug + "/" + file;      // self-contained, same origin
     const full  = "/tiny-games/" + g.slug + "/";             // the game's own page
+    // Games can opt out of iframe play via games.json ("embed": false) —
+    // heavy pages (e.g. tarot's inlined deck) open fullscreen instead.
+    const embeddable = g.embed !== false;
     const cab = document.createElement("div");
     cab.className = "cabinet";
     cab.innerHTML =
-      '<div class="screen"><div class="poster" role="button" tabindex="0" aria-label="Summon ' + g.name + '">' +
+      '<div class="screen"><div class="poster" role="button" tabindex="0" aria-label="' + (embeddable ? "Summon " : "Open ") + g.name + '">' +
         '<div class="rune">' + g.rune + '</div><div class="nm">' + g.name + '</div>' +
-        '<div class="tl">' + g.tagline + '</div><div class="summon">Summon ▸</div></div></div>' +
+        '<div class="tl">' + g.tagline + '</div><div class="summon">' + (embeddable ? 'Summon ▸' : 'Open fullscreen ↗') + '</div></div></div>' +
       '<div class="cab-cta"><a class="btn" href="' + full + '" target="_blank" rel="noopener">Play fullscreen <span class="arw">↗</span></a>' +
         (g.note ? '<span class="cab-note">' + g.note + '</span>' : '') + '</div>';
     cabinets.appendChild(cab);
@@ -449,7 +459,9 @@
           const wt = d && (d.querySelector(".wt") || d.body);
           if(wt){
             const h = Math.ceil(Math.max(wt.scrollHeight, wt.getBoundingClientRect().height));
-            if(h > 80) f.style.height = h + "px";
+            // Hysteresis: ignore ±4px jitter, or a viewport-tracking body
+            // (min-height:100vh) feeds the ResizeObserver its own growth forever.
+            if(h > 80 && Math.abs(h - f.getBoundingClientRect().height) > 4) f.style.height = h + "px";
           }
         } catch(_){/* cross-origin: falls back to the 640px default */}
       };
@@ -462,8 +474,10 @@
       screenEl.classList.add("live");
       poster.replaceWith(f);
     };
-    poster.addEventListener("click", summon);
-    poster.addEventListener("keydown", e => { if(e.key==="Enter"||e.key===" "){ e.preventDefault(); summon(); } });
+    const openFull = () => window.open(full, "_blank", "noopener");
+    const act = embeddable ? summon : openFull;
+    poster.addEventListener("click", act);
+    poster.addEventListener("keydown", e => { if(e.key==="Enter"||e.key===" "){ e.preventDefault(); act(); } });
   };
   // Single source: tiny-games publishes /tiny-games/games.json, so new games
   // appear here with no edits to this site. Fall back to the list above if the
