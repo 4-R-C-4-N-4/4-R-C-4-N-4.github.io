@@ -417,15 +417,15 @@
   // (single source of truth). To feature another game, add an entry here.
   // Fallback list if the manifest can't be fetched (offline / local dev).
   const FALLBACK_GAMES = [
-    { slug:"wiz-tower", rune:"🧙", name:"wiz-tower",
-      tagline:"adversarial tower defense · a foe that reads your board",
-      note:"95 tests green" },
     { slug:"lexomancy", rune:"📖", name:"lexomancy",
       tagline:"a war of words · cast your vocabulary",
       note:"full spire playable — distilled 80k-word scorer, 50 tests green" },
     { slug:"tarot", rune:"🔮", name:"tarot", embed:false,
       tagline:"daily draws · a tiny oracle reads your spread",
       note:"deterministic daily spreads, 1909 Waite–Smith card art (public domain); ~360M-param LLM interpreter runs in-browser" },
+    { slug:"wiz-tower", rune:"🧙", name:"wiz-tower",
+      tagline:"adversarial tower defense · a foe that reads your board",
+      note:"95 tests green" },
   ];
   const cabinets = document.getElementById("cabinets");
   const buildCabinet = (g) => {
