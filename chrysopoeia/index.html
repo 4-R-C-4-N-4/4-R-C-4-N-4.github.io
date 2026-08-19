@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chrysopoeia — in the browser</title>
+<meta name="description" content="A 3B esoteric-register model running entirely in your browser via WebAssembly. No server, no data leaves your machine.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Spectral:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<!-- enable SharedArrayBuffer (wllama multi-thread) on GitHub Pages -->
+<script src="./coi-serviceworker.js"></script>
+<style>
+  :root{
+    --bg:#17130d; --surface:#1f1a11; --raise:#26200f; --ink:#ece3cf; --muted:#a99e83;
+    --faint:#857b64; --gold:#d0a94e; --gold-bright:#e6c56a; --line:rgba(208,169,78,.20);
+    --user:#2b2416; --err:#c9694f;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Spectral",Georgia,serif;font-size:1.05rem;line-height:1.65;
+    display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+  header{text-align:center;padding:1.6rem 1rem .8rem;border-bottom:1px solid var(--line)}
+  .glyph{font-family:"Fraunces",serif;color:var(--gold);font-size:2rem;line-height:1}
+  h1{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(1.8rem,5vw,2.6rem);
+    margin:.2rem 0 0;letter-spacing:-.02em}
+  .tag{color:var(--muted);font-style:italic;margin:.3rem 0 0;font-size:.98rem}
+  .runs-local{font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.15em;
+    text-transform:uppercase;color:var(--faint);margin-top:.7rem}
+
+  main{flex:1;width:100%;max-width:44rem;margin:0 auto;padding:1rem 1rem 0;
+    display:flex;flex-direction:column;min-height:0}
+  #chat{flex:1;overflow-y:auto;padding:.5rem .2rem 1rem 0;display:flex;flex-direction:column;gap:1rem;
+    scrollbar-width:thin;scrollbar-color:var(--line) transparent;overflow-anchor:none}
+  #chat::-webkit-scrollbar{width:8px}
+  #chat::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+  #chat::-webkit-scrollbar-thumb:hover{background:var(--faint)}
+  #chat::-webkit-scrollbar-track{background:transparent}
+  .msg{max-width:100%}
+  .msg .who{font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--faint);margin-bottom:.25rem}
+  .msg.user .bubble{background:var(--user);border-radius:3px;padding:.55rem .8rem}
+  .msg.bot .bubble{border-left:2px solid var(--gold);padding:.3rem 0 .3rem 1rem;font-style:italic}
+  .msg.bot .bubble{white-space:pre-wrap}
+  .msg .cursor{display:inline-block;width:.5ch;background:var(--gold);animation:blink 1s steps(2) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  /* summon / load panel */
+  #gate{display:flex;flex-direction:column;align-items:center;gap:1rem;
+    text-align:center;padding:2.5rem 1rem;color:var(--muted)}
+  #gate p{margin:0;max-width:30rem}
+  button{font-family:"IBM Plex Mono",monospace;font-size:.8rem;letter-spacing:.08em;
+    background:var(--gold);color:#17130d;border:0;border-radius:3px;padding:.7rem 1.4rem;
+    cursor:pointer;font-weight:500;text-transform:uppercase}
+  button:hover{background:var(--gold-bright)}
+  button:disabled{opacity:.45;cursor:default}
+  .bar{width:min(30rem,90%);height:6px;background:var(--surface);border-radius:3px;overflow:hidden;border:1px solid var(--line)}
+  .bar>i{display:block;height:100%;width:0;background:var(--gold);transition:width .25s}
+  #status{font-family:"IBM Plex Mono",monospace;font-size:.75rem;color:var(--faint);min-height:1.1em}
+  .err{color:var(--err)}
+
+  /* composer */
+  #composer{display:flex;gap:.5rem;padding:.8rem 0 1.2rem;border-top:1px solid var(--line)}
+  #composer[hidden]{display:none}
+  #q{flex:1;background:var(--surface);color:var(--ink);border:1px solid var(--line);
+    border-radius:3px;padding:.6rem .8rem;font-family:"Spectral",serif;font-size:1rem;resize:none;
+    overflow-y:hidden;line-height:1.4;max-height:7.5rem;
+    scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+  #q::-webkit-scrollbar{width:8px}
+  #q::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+  #q:focus,button:focus-visible{outline:2px solid var(--gold-bright);outline-offset:2px}
+  footer{text-align:center;color:var(--faint);font-size:.78rem;
+    font-family:"IBM Plex Mono",monospace;padding:.4rem 1rem 1rem}
+  footer a{color:var(--gold);text-decoration:none}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="glyph" aria-hidden="true">&#128794;</div>
+  <h1>Chrysopoeia</h1>
+  <p class="tag">Ask anything &mdash; it answers in the voice of the occult revival.</p>
+  <div class="runs-local">runs entirely in your browser &middot; nothing leaves this machine</div>
+</header>
+
+<main>
+  <div id="gate">
+    <p>A 3&#8202;billion&#8209;parameter model runs locally via WebAssembly. The first
+      summoning downloads <strong>~1.1&nbsp;GB</strong> of weights (cached afterward,
+      so it&rsquo;s instant next time).</p>
+    <button id="summon">&#9788; Summon the model</button>
+    <div class="bar" hidden><i></i></div>
+    <div id="status"></div>
+  </div>
+
+  <div id="chat" hidden></div>
+
+  <form id="composer" hidden>
+    <textarea id="q" rows="1" placeholder="How's the weather? / What is the soul?" autocomplete="off"></textarea>
+    <button type="submit" id="send">Ask</button>
+  </form>
+</main>
+
+<footer>
+  <a href="https://huggingface.co/4rc4n4/chrysopoeia-smollm3">model</a> &middot;
+  <a href="https://github.com/4-R-C-4-N-4/chrysopoeia">source</a> &middot;
+  IQ2_M &middot; wllama (llama.cpp&#8202;/&#8202;wasm)
+</footer>
+
+<script type="module">
+import { Wllama } from "https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.5/esm/index.js";
+
+// ── config ─────────────────────────────────────────────────────────────
+const V = "2.3.5";
+const WASM = {
+  "single-thread/wllama.wasm": `https://cdn.jsdelivr.net/npm/@wllama/wllama@${V}/esm/single-thread/wllama.wasm`,
+  "multi-thread/wllama.wasm":  `https://cdn.jsdelivr.net/npm/@wllama/wllama@${V}/esm/multi-thread/wllama.wasm`,
+};
+// Model choice — IQ2_M (1.13GB) is the browser default: lighter download + wasm
+// footprint so a 3B stays responsive. Swap to the IQ3_M block for higher quality.
+const BASE = "https://huggingface.co/4rc4n4/chrysopoeia-smollm3/resolve/main";
+const MODEL = { dir: "gguf-split-iq2m", quant: "IQ2_M", n: 4 };   // default (fast)
+// const MODEL = { dir: "gguf-split", quant: "IQ3_M", n: 5 };     // higher quality
+const SHARDS = Array.from({length: MODEL.n}, (_, i) =>
+  `${BASE}/${MODEL.dir}/chrysopoeia-smollm3-${MODEL.quant}-${String(i+1).padStart(5,"0")}-of-${String(MODEL.n).padStart(5,"0")}.gguf`);
+
+const USER_TAG = "### User:", BOT_TAG = "### Chrysopoeia:";
+const renderPrompt = (turns, q) =>
+  turns.map(t => `${USER_TAG}\n${t.q}\n\n${BOT_TAG}\n${t.a}`).join("\n\n") +
+  (turns.length ? "\n\n" : "") + `${USER_TAG}\n${q}\n\n${BOT_TAG}\n`;
+
+// ── elements ───────────────────────────────────────────────────────────
+const $ = s => document.querySelector(s);
+const gate=$("#gate"), bar=$(".bar"), barFill=$(".bar>i"), status=$("#status"),
+      chat=$("#chat"), composer=$("#composer"), qEl=$("#q"), sendBtn=$("#send"),
+      summonBtn=$("#summon");
+let wllama=null, busy=false;
+const history=[];   // {q,a}
+
+const fmtMB = b => (b/1e6).toFixed(0);
+// stick to bottom only when the reader is already there
+const nearBottom = () => chat.scrollHeight - chat.scrollTop - chat.clientHeight < 90;
+const toBottom = () => { chat.scrollTop = chat.scrollHeight; };
+function addMsg(who, text, force){
+  const stick = force || nearBottom();
+  const m=document.createElement("div"); m.className=`msg ${who}`;
+  m.innerHTML=`<div class="who">${who==="user"?"You":"Chrysopoeia"}</div><div class="bubble"></div>`;
+  m.querySelector(".bubble").textContent=text;
+  chat.appendChild(m); if(stick) toBottom();
+  return m.querySelector(".bubble");
+}
+
+// ── load ───────────────────────────────────────────────────────────────
+const log = (m) => { status.textContent = m; console.log("[chrys]", m); };
+summonBtn.addEventListener("click", async () => {
+  summonBtn.disabled=true; bar.hidden=false;
+  // report threading state up front — single-thread on a 3B is the usual freeze
+  const iso = self.crossOriginIsolated;
+  log(`isolation: ${iso ? "on (multi-thread)" : "OFF — single-thread, may be slow"}`);
+  try{
+    log("loading wllama runtime…");
+    wllama = new Wllama(WASM, {
+      // surface wllama's own logs so we can see where it stalls
+      logger: { debug:()=>{}, log:(...a)=>console.log("[wllama]",...a),
+                warn:(...a)=>console.warn("[wllama]",...a),
+                error:(...a)=>{console.error("[wllama]",...a); log(`err: ${a.join(" ")}`);} },
+    });
+    let lastPct=-1;
+    log("downloading weights…");
+    await wllama.loadModelFromUrl(SHARDS, {
+      n_ctx: 1024,                       // lighter wasm memory footprint
+      n_threads: iso ? undefined : 1,    // let it pick when isolated
+      allowOffline: false,
+      progressCallback: ({loaded,total}) => {
+        const pct = total ? loaded/total : 0;
+        barFill.style.width = (pct*100).toFixed(1)+"%";
+        const p = Math.round(pct*100);
+        if (p !== lastPct){
+          lastPct=p;
+          log(p >= 100
+            ? "download complete — assembling model into memory (~30-60s, the tab may pause)…"
+            : `downloading weights — ${fmtMB(loaded)}/${fmtMB(total)} MB (${p}%)`);
+        }
+      },
+    });
+    log("model loaded — warming the vessel…");
+    // prime the graph once so the first real turn doesn't cut off mid-flight
+    try { await wllama.createCompletion("### User:\nHi\n\n### Chrysopoeia:\n", { nPredict: 2 }); } catch(_){}
+    log("");
+    gate.hidden=true; chat.hidden=false; composer.hidden=false; qEl.focus();
+    addMsg("bot","The vessel is awake. Speak, and I will answer.", true);
+  }catch(e){
+    console.error(e);
+    status.innerHTML=`<span class="err">failed at load: ${e.message||e}</span>`;
+    summonBtn.disabled=false;
+  }
+});
+
+// ── chat ───────────────────────────────────────────────────────────────
+function autosize(){
+  qEl.style.height="auto";
+  const max=120;                       // matches CSS max-height 7.5rem
+  qEl.style.height=Math.min(qEl.scrollHeight,max)+"px";
+  qEl.style.overflowY = qEl.scrollHeight>max ? "auto" : "hidden";
+}
+
+composer.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const q=qEl.value.trim();
+  if(!q || busy || !wllama) return;
+  busy=true; sendBtn.disabled=true; qEl.value=""; autosize();
+  addMsg("user", q, true);            // user just acted → always scroll
+  const out=addMsg("bot","", true); out.innerHTML='<span class="cursor">&nbsp;</span>';
+  let acc="", shown="";
+  try{
+    await wllama.createCompletion(renderPrompt(history, q), {
+      nPredict: 260,
+      sampling: { temp: 0.7, top_p: 0.9, top_k: 40 },
+      stopStrings: [USER_TAG],
+      onNewToken: (token, piece, currentText) => {
+        if(typeof piece === "string") acc += piece;          // robust to API shape
+        const text = (typeof currentText === "string" && currentText.length) ? currentText : acc;
+        shown = text.split(USER_TAG)[0];
+        const stick = nearBottom();     // only follow if reader is at the bottom
+        out.textContent = shown;
+        if(stick) toBottom();
+      },
+    });
+    shown = shown.trim();
+    if(shown){ out.textContent = shown; history.push({ q, a: shown }); }
+    else out.innerHTML = '<span class="err">(no output — try again)</span>';
+  }catch(err){
+    console.error(err);
+    out.innerHTML = `<span class="err">generation error: ${err?.message || err}</span>`;
+  }
+  busy=false; sendBtn.disabled=false; qEl.focus();
+});
+
+// textarea: grow to content (no scrollbar until max), submit on Enter
+qEl.addEventListener("input", autosize);
+qEl.addEventListener("keydown", (e) => {
+  if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); composer.requestSubmit(); }
+});
+</script>
+</body>
+</html>
